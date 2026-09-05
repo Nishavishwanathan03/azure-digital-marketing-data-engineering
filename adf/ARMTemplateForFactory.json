@@ -1,0 +1,1078 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "factoryName": {
+            "type": "string",
+            "metadata": "Data Factory name",
+            "defaultValue": "marketings-adf"
+        },
+        "LS_ADLS_Marketing_accountKey": {
+            "type": "secureString",
+            "metadata": "Secure string for 'accountKey' of 'LS_ADLS_Marketing'"
+        },
+        "LS_ADLS_Marketing_properties_typeProperties_url": {
+            "type": "string",
+            "defaultValue": "https://marketingde2026.dfs.core.windows.net/"
+        }
+    },
+    "variables": {
+        "factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+    },
+    "resources": [
+        {
+            "name": "[concat(parameters('factoryName'), '/LS_ADLS_Marketing')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "AzureBlobFS",
+                "typeProperties": {
+                    "url": "[parameters('LS_ADLS_Marketing_properties_typeProperties_url')]",
+                    "accountKey": {
+                        "type": "SecureString",
+                        "value": "[parameters('LS_ADLS_Marketing_accountKey')]"
+                    }
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/DS_SRC_Amazon_Ads')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "LS_ADLS_Marketing",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "amazon_ads.csv",
+                        "folderPath": "amazon",
+                        "fileSystem": "bronze"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": [
+                    {
+                        "name": "date",
+                        "type": "String"
+                    },
+                    {
+                        "name": "campaign_id",
+                        "type": "String"
+                    },
+                    {
+                        "name": "campaign_name",
+                        "type": "String"
+                    },
+                    {
+                        "name": "brand",
+                        "type": "String"
+                    },
+                    {
+                        "name": "product",
+                        "type": "String"
+                    },
+                    {
+                        "name": "impressions",
+                        "type": "String"
+                    },
+                    {
+                        "name": "clicks",
+                        "type": "String"
+                    },
+                    {
+                        "name": "spend",
+                        "type": "String"
+                    },
+                    {
+                        "name": "orders",
+                        "type": "String"
+                    },
+                    {
+                        "name": "sales",
+                        "type": "String"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/LS_ADLS_Marketing')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/PL_INGEST_AMAZON_ADS')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "COPY_AMAZON_ADS_TO_BRONZE",
+                        "type": "Copy",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "0.12:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "source": {
+                                "type": "DelimitedTextSource",
+                                "storeSettings": {
+                                    "type": "AzureBlobFSReadSettings",
+                                    "recursive": true,
+                                    "enablePartitionDiscovery": false
+                                },
+                                "formatSettings": {
+                                    "type": "DelimitedTextReadSettings"
+                                }
+                            },
+                            "sink": {
+                                "type": "ParquetSink",
+                                "storeSettings": {
+                                    "type": "AzureBlobFSWriteSettings"
+                                },
+                                "formatSettings": {
+                                    "type": "ParquetWriteSettings"
+                                }
+                            },
+                            "enableStaging": false,
+                            "translator": {
+                                "type": "TabularTranslator",
+                                "mappings": [
+                                    {
+                                        "source": {
+                                            "name": "date",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "date",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "campaign_id",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "campaign_id",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "campaign_name",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "campaign_name",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "brand",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "brand",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "product",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "product",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "impressions",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "impressions",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "clicks",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "clicks",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "spend",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "spend",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "orders",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "orders",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "name": "sales",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        },
+                                        "sink": {
+                                            "name": "sales",
+                                            "type": "String",
+                                            "physicalType": "String"
+                                        }
+                                    }
+                                ],
+                                "typeConversion": true,
+                                "typeConversionSettings": {
+                                    "allowDataTruncation": true,
+                                    "treatBooleanAsNumber": false
+                                }
+                            }
+                        },
+                        "inputs": [
+                            {
+                                "referenceName": "DS_SRC_Amazon_Ads",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "referenceName": "DS_SINK_Bronze_Marketing",
+                                "type": "DatasetReference",
+                                "parameters": {
+                                    "platform": "amazon"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "name": "FOREACH_PLATFORMS",
+                        "type": "ForEach",
+                        "dependsOn": [
+                            {
+                                "activity": "COPY_AMAZON_ADS_TO_BRONZE",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "items": {
+                                "value": "@json(pipeline().parameters.platforms)",
+                                "type": "Expression"
+                            },
+                            "activities": [
+                                {
+                                    "name": "COPY_PLATFORM_TO_BRONZE",
+                                    "type": "Copy",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "timeout": "0.12:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "source": {
+                                            "type": "DelimitedTextSource",
+                                            "storeSettings": {
+                                                "type": "AzureBlobFSReadSettings",
+                                                "recursive": true,
+                                                "enablePartitionDiscovery": false
+                                            },
+                                            "formatSettings": {
+                                                "type": "DelimitedTextReadSettings"
+                                            }
+                                        },
+                                        "sink": {
+                                            "type": "ParquetSink",
+                                            "storeSettings": {
+                                                "type": "AzureBlobFSWriteSettings"
+                                            },
+                                            "formatSettings": {
+                                                "type": "ParquetWriteSettings"
+                                            }
+                                        },
+                                        "enableStaging": false,
+                                        "translator": {
+                                            "type": "TabularTranslator",
+                                            "typeConversion": true,
+                                            "typeConversionSettings": {
+                                                "allowDataTruncation": true,
+                                                "treatBooleanAsNumber": false
+                                            }
+                                        }
+                                    },
+                                    "inputs": [
+                                        {
+                                            "referenceName": "DS_SRC_Landing_Amazon_Ads",
+                                            "type": "DatasetReference",
+                                            "parameters": {
+                                                "platform": {
+                                                    "value": "@item()",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        }
+                                    ],
+                                    "outputs": [
+                                        {
+                                            "referenceName": "DS_SINK_Bronze_Marketing",
+                                            "type": "DatasetReference",
+                                            "parameters": {
+                                                "platform": {
+                                                    "value": "@item()",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {}
+                },
+                "parameters": {
+                    "platforms": {
+                        "type": "string",
+                        "defaultValue": [
+                            "amazon",
+                            "flipkart",
+                            "blinkit",
+                            "zepto",
+                            "swiggy"
+                        ]
+                    }
+                },
+                "annotations": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/datasets/DS_SRC_Amazon_Ads')]",
+                "[concat(variables('factoryId'), '/datasets/DS_SINK_Bronze_Marketing')]",
+                "[concat(variables('factoryId'), '/datasets/DS_SRC_Landing_Amazon_Ads')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/DS_SRC_Landing_Amazon_Ads')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "LS_ADLS_Marketing",
+                    "type": "LinkedServiceReference"
+                },
+                "parameters": {
+                    "platform": {
+                        "type": "string",
+                        "defaultValue": "amazon"
+                    }
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": {
+                            "value": "@concat(dataset().platform,'_ads.csv')",
+                            "type": "Expression"
+                        },
+                        "folderPath": {
+                            "value": "@dataset().platform",
+                            "type": "Expression"
+                        },
+                        "fileSystem": "landing"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": [
+                    {
+                        "name": "date",
+                        "type": "String"
+                    },
+                    {
+                        "name": "campaign_id",
+                        "type": "String"
+                    },
+                    {
+                        "name": "campaign_name",
+                        "type": "String"
+                    },
+                    {
+                        "name": "brand",
+                        "type": "String"
+                    },
+                    {
+                        "name": "product",
+                        "type": "String"
+                    },
+                    {
+                        "name": "impressions",
+                        "type": "String"
+                    },
+                    {
+                        "name": "clicks",
+                        "type": "String"
+                    },
+                    {
+                        "name": "spend",
+                        "type": "String"
+                    },
+                    {
+                        "name": "orders",
+                        "type": "String"
+                    },
+                    {
+                        "name": "sales",
+                        "type": "String"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/LS_ADLS_Marketing')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/DS_SINK_Bronze_Marketing')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "LS_ADLS_Marketing",
+                    "type": "LinkedServiceReference"
+                },
+                "parameters": {
+                    "platform": {
+                        "type": "string",
+                        "defaultValue": "amazon"
+                    }
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": {
+                            "value": "@concat(dataset().platform,'_ads.parquet')",
+                            "type": "Expression"
+                        },
+                        "folderPath": {
+                            "value": "@dataset().platform",
+                            "type": "Expression"
+                        },
+                        "fileSystem": "bronze"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/LS_ADLS_Marketing')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/PL_TRANSFORM_BRONZE_TO_SILVER')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "FOREACH_PLATFORMS",
+                        "type": "ForEach",
+                        "dependsOn": [],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "items": {
+                                "value": "@json('[\"amazon\",\"flipkart\",\"blinkit\",\"zepto\",\"swiggy\"]')",
+                                "type": "Expression"
+                            },
+                            "activities": [
+                                {
+                                    "name": "COPY_BRONZE_TO_SILVER",
+                                    "type": "Copy",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "timeout": "0.12:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "source": {
+                                            "type": "ParquetSource",
+                                            "storeSettings": {
+                                                "type": "AzureBlobFSReadSettings",
+                                                "recursive": true,
+                                                "enablePartitionDiscovery": false
+                                            },
+                                            "formatSettings": {
+                                                "type": "ParquetReadSettings"
+                                            }
+                                        },
+                                        "sink": {
+                                            "type": "ParquetSink",
+                                            "storeSettings": {
+                                                "type": "AzureBlobFSWriteSettings",
+                                                "copyBehavior": "PreserveHierarchy"
+                                            },
+                                            "formatSettings": {
+                                                "type": "ParquetWriteSettings"
+                                            }
+                                        },
+                                        "enableStaging": false,
+                                        "translator": {
+                                            "type": "TabularTranslator",
+                                            "typeConversion": true,
+                                            "typeConversionSettings": {
+                                                "allowDataTruncation": true,
+                                                "treatBooleanAsNumber": false
+                                            }
+                                        }
+                                    },
+                                    "inputs": [
+                                        {
+                                            "referenceName": "DS_SRC_Bronze_Marketing",
+                                            "type": "DatasetReference",
+                                            "parameters": {
+                                                "platform": {
+                                                    "value": "@item()",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        }
+                                    ],
+                                    "outputs": [
+                                        {
+                                            "referenceName": "DS_SINK_Silver_Marketing",
+                                            "type": "DatasetReference",
+                                            "parameters": {
+                                                "platform": {
+                                                    "value": "@item()",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {}
+                },
+                "annotations": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/datasets/DS_SRC_Bronze_Marketing')]",
+                "[concat(variables('factoryId'), '/datasets/DS_SINK_Silver_Marketing')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/DS_SRC_Bronze_Marketing')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "LS_ADLS_Marketing",
+                    "type": "LinkedServiceReference"
+                },
+                "parameters": {
+                    "platform": {
+                        "type": "string",
+                        "defaultValue": "amazon"
+                    }
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": {
+                            "value": "@concat(dataset().platform,'_ads.parquet')",
+                            "type": "Expression"
+                        },
+                        "folderPath": {
+                            "value": "@dataset().platform",
+                            "type": "Expression"
+                        },
+                        "fileSystem": "bronze"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/LS_ADLS_Marketing')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/DS_SINK_Silver_Marketing')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "LS_ADLS_Marketing",
+                    "type": "LinkedServiceReference"
+                },
+                "parameters": {
+                    "platform": {
+                        "type": "string"
+                    }
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": {
+                            "value": "@concat(dataset().platform,'_ads.parquet')",
+                            "type": "Expression"
+                        },
+                        "folderPath": {
+                            "value": "@dataset().platform",
+                            "type": "Expression"
+                        },
+                        "fileSystem": "silver"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/LS_ADLS_Marketing')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/DS_SINK_Gold_Marketing')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "LS_ADLS_Marketing",
+                    "type": "LinkedServiceReference"
+                },
+                "parameters": {
+                    "platform": {
+                        "type": "string",
+                        "defaultValue": "amazon"
+                    }
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": {
+                            "value": "@concat(dataset().platform,'_ads.parquet')",
+                            "type": "Expression"
+                        },
+                        "folderPath": {
+                            "value": "@dataset().platform",
+                            "type": "Expression"
+                        },
+                        "fileSystem": "gold"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/LS_ADLS_Marketing')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/PL_TRANSFORM_SILVER_TO_GOLD')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "FOREACH_PLATFORMS_GOLD",
+                        "type": "ForEach",
+                        "dependsOn": [],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "items": {
+                                "value": "@json(pipeline().parameters.platforms)",
+                                "type": "Expression"
+                            },
+                            "activities": [
+                                {
+                                    "name": "COPY_SILVER_TO_GOLD",
+                                    "type": "Copy",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "timeout": "0.12:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "source": {
+                                            "type": "ParquetSource",
+                                            "storeSettings": {
+                                                "type": "AzureBlobFSReadSettings",
+                                                "recursive": true,
+                                                "enablePartitionDiscovery": false
+                                            },
+                                            "formatSettings": {
+                                                "type": "ParquetReadSettings"
+                                            }
+                                        },
+                                        "sink": {
+                                            "type": "ParquetSink",
+                                            "storeSettings": {
+                                                "type": "AzureBlobFSWriteSettings"
+                                            },
+                                            "formatSettings": {
+                                                "type": "ParquetWriteSettings"
+                                            }
+                                        },
+                                        "enableStaging": false,
+                                        "translator": {
+                                            "type": "TabularTranslator",
+                                            "mappings": [
+                                                {
+                                                    "source": {
+                                                        "name": "date",
+                                                        "type": "String",
+                                                        "physicalType": "UTF8"
+                                                    },
+                                                    "sink": {
+                                                        "name": "date",
+                                                        "type": "String",
+                                                        "physicalType": "UTF8"
+                                                    }
+                                                },
+                                                {
+                                                    "source": {
+                                                        "name": "campaign_id",
+                                                        "type": "String",
+                                                        "physicalType": "UTF8"
+                                                    },
+                                                    "sink": {
+                                                        "name": "campaign_id",
+                                                        "type": "String",
+                                                        "physicalType": "UTF8"
+                                                    }
+                                                },
+                                                {
+                                                    "source": {
+                                                        "name": "campaign_name",
+                                                        "type": "String",
+                                                        "physicalType": "UTF8"
+                                                    },
+                                                    "sink": {
+                                                        "name": "campaign_name",
+                                                        "type": "String",
+                                                        "physicalType": "UTF8"
+                                                    }
+                                                },
+                                                {
+                                                    "source": {
+                                                        "name": "brand",
+                                                        "type": "String",
+                                                        "physicalType": "UTF8"
+                                                    },
+                                                    "sink": {
+                                                        "name": "brand",
+                                                        "type": "String",
+                                                        "physicalType": "UTF8"
+                                                    }
+                                                },
+                                                {
+                                                    "source": {
+                                                        "name": "product",
+                                                        "type": "String",
+                                                        "physicalType": "UTF8"
+                                                    },
+                                                    "sink": {
+                                                        "name": "product",
+                                                        "type": "String",
+                                                        "physicalType": "UTF8"
+                                                    }
+                                                },
+                                                {
+                                                    "source": {
+                                                        "name": "impressions",
+                                                        "type": "String",
+                                                        "physicalType": "UTF8"
+                                                    },
+                                                    "sink": {
+                                                        "name": "impressions",
+                                                        "type": "String",
+                                                        "physicalType": "UTF8"
+                                                    }
+                                                },
+                                                {
+                                                    "source": {
+                                                        "name": "clicks",
+                                                        "type": "String",
+                                                        "physicalType": "UTF8"
+                                                    },
+                                                    "sink": {
+                                                        "name": "clicks",
+                                                        "type": "String",
+                                                        "physicalType": "UTF8"
+                                                    }
+                                                },
+                                                {
+                                                    "source": {
+                                                        "name": "spend",
+                                                        "type": "String",
+                                                        "physicalType": "UTF8"
+                                                    },
+                                                    "sink": {
+                                                        "name": "spend",
+                                                        "type": "String",
+                                                        "physicalType": "UTF8"
+                                                    }
+                                                },
+                                                {
+                                                    "source": {
+                                                        "name": "orders",
+                                                        "type": "String",
+                                                        "physicalType": "UTF8"
+                                                    },
+                                                    "sink": {
+                                                        "name": "orders",
+                                                        "type": "String",
+                                                        "physicalType": "UTF8"
+                                                    }
+                                                },
+                                                {
+                                                    "source": {
+                                                        "name": "sales",
+                                                        "type": "String",
+                                                        "physicalType": "UTF8"
+                                                    },
+                                                    "sink": {
+                                                        "name": "sales",
+                                                        "type": "String",
+                                                        "physicalType": "UTF8"
+                                                    }
+                                                }
+                                            ],
+                                            "typeConversion": true,
+                                            "typeConversionSettings": {
+                                                "allowDataTruncation": true,
+                                                "treatBooleanAsNumber": false
+                                            }
+                                        }
+                                    },
+                                    "inputs": [
+                                        {
+                                            "referenceName": "DS_SINK_Silver_Marketing",
+                                            "type": "DatasetReference",
+                                            "parameters": {
+                                                "platform": {
+                                                    "value": "@item()",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        }
+                                    ],
+                                    "outputs": [
+                                        {
+                                            "referenceName": "DS_SINK_Gold_Marketing",
+                                            "type": "DatasetReference",
+                                            "parameters": {
+                                                "platform": {
+                                                    "value": "@item()",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {}
+                },
+                "parameters": {
+                    "platforms": {
+                        "type": "string",
+                        "defaultValue": [
+                            "amazon",
+                            "flipkart",
+                            "blinkit",
+                            "zepto",
+                            "swiggy"
+                        ]
+                    }
+                },
+                "annotations": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/datasets/DS_SINK_Silver_Marketing')]",
+                "[concat(variables('factoryId'), '/datasets/DS_SINK_Gold_Marketing')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/PL_MASTER_MARKETING')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "EXEC_INGEST",
+                        "type": "ExecutePipeline",
+                        "dependsOn": [],
+                        "policy": {
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "pipeline": {
+                                "referenceName": "PL_INGEST_AMAZON_ADS",
+                                "type": "PipelineReference"
+                            },
+                            "waitOnCompletion": true,
+                            "parameters": {
+                                "platforms": {
+                                    "value": "@string(pipeline().parameters.platforms)",
+                                    "type": "Expression"
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "name": "EXEC_BRONZE_TO_SILVER",
+                        "type": "ExecutePipeline",
+                        "dependsOn": [
+                            {
+                                "activity": "EXEC_INGEST",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "policy": {
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "pipeline": {
+                                "referenceName": "PL_TRANSFORM_BRONZE_TO_SILVER",
+                                "type": "PipelineReference"
+                            },
+                            "waitOnCompletion": true,
+                            "parameters": {}
+                        }
+                    },
+                    {
+                        "name": "EXEC_SILVER_TO_GOLD",
+                        "type": "ExecutePipeline",
+                        "dependsOn": [
+                            {
+                                "activity": "EXEC_BRONZE_TO_SILVER",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "policy": {
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "pipeline": {
+                                "referenceName": "PL_TRANSFORM_SILVER_TO_GOLD",
+                                "type": "PipelineReference"
+                            },
+                            "waitOnCompletion": true,
+                            "parameters": {}
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {}
+                },
+                "parameters": {
+                    "platforms": {
+                        "type": "array",
+                        "defaultValue": [
+                            "amazon",
+                            "flipkart",
+                            "blinkit",
+                            "zepto",
+                            "swiggy"
+                        ]
+                    }
+                },
+                "annotations": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/pipelines/PL_INGEST_AMAZON_ADS')]",
+                "[concat(variables('factoryId'), '/pipelines/PL_TRANSFORM_BRONZE_TO_SILVER')]",
+                "[concat(variables('factoryId'), '/pipelines/PL_TRANSFORM_SILVER_TO_GOLD')]"
+            ]
+        }
+    ]
+}
